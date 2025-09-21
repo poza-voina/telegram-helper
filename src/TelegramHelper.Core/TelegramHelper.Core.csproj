@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.9" />
+    <PackageReference Include="TDLib" Version="1.8.45" />
+    <PackageReference Include="tdlib.native" Version="1.8.45" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TelegramHelper.Contracts\TelegramHelper.Contracts.csproj" />
+    <ProjectReference Include="..\TelegramHelper.Infrastructure\TelegramHelper.Infrastructure.csproj" />
+    <ProjectReference Include="..\TelegramHelper.Contracts\TelegramHelper.Contracts.csproj" />
+  </ItemGroup>
+
+</Project>
