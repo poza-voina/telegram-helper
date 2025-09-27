@@ -1,7 +1,8 @@
-﻿// See https://aka.ms/new-console-template for more information
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using Serilog;
 using TdLib;
 using TelegramHelper.Core.Executors;
 using TelegramHelper.Core.Executors.Interfaces;
@@ -16,32 +17,42 @@ using static TdLib.TdApi;
 using static TdLib.TdApi.AuthorizationState;
 
 
-var initOptions =  new InitializeClientOptions
+var initOptions = new InitializeClientOptions
 {
     InitializeOptions = new InitializeTelegramClientOptions
     {
-        DatabaseDirectory = "tg_db",
-        FilesDirectory = "files",
+        DatabaseDirectory = "",
+        FilesDirectory = "",
         ApiId = 0,
         ApiHash = ""
     },
-    AuthorizeOptions = new AuthorizeOptions { PhoneNumber = "" }
+    AuthorizeOptions = new AuthorizeOptions { PhoneNumber = "" },
+    Id = Guid.NewGuid(),
 };
 
 var connectionString = "Server=localhost;Port=5432;Database=telegram;User Id=postgres;Password=postgres;";
 
+
+Log.Logger = new LoggerConfiguration()
+            .MinimumLevel.Debug()
+            .WriteTo.File("Test.log")
+            .WriteTo.Console()
+            .CreateLogger();
+
 IHost host = Host.CreateDefaultBuilder(args)
             .ConfigureServices((context, services) =>
             {
-                services.AddSingleton<ITelegramClient, TelegramClient>();
-                services.AddSingleton<ITelegramUpdateExecutor, TelegramUpdateExecutor>();
-                services.AddSingleton<IUpdateChatFoldersExecutor, UpdateChatFoldersExecutor>();
-                services.AddSingleton<IUpdateAuhorizationStateExecutor, UpdateAuthorizationStateExecutor>();
-                services.AddSingleton<IChatFolderRepository, ChatFolderRepository>();
-                services.AddSingleton<IFolderRepository, FolderRepository>();
-                services.AddTransient(typeof(IRepository<>), typeof(Repository<>));
-                services.AddSingleton<ClientServiceFactory>();
-                services.AddSingleton<PostgresContext>(sp =>
+                services.AddScoped<ITelegramUpdateExecutor, TelegramUpdateExecutor>();
+
+                services.AddScoped(x => new TelegramClientContext());
+                services.AddScoped<IUpdateAuthorizationStateExecutor, UpdateAuthorizationStateExecutor>();
+                services.AddScoped<IUpdateChatFoldersExecutor, UpdateChatFoldersExecutor>();
+                services.AddSingleton<ITelegramClientDispatcher, TelegramClientDispatcher>();
+                services.AddScoped<IChatFolderRepository, ChatFolderRepository>();
+                services.AddScoped<IFolderRepository, FolderRepository>();
+                services.AddScoped<IOwnerRepository, OwnerRepository>();
+                services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
+                services.AddScoped<PostgresContext>(sp =>
                 {
                     var options = new DbContextOptionsBuilder<PostgresContext>()
                         .UseNpgsql(connectionString)
@@ -49,31 +60,40 @@ IHost host = Host.CreateDefaultBuilder(args)
                     return new PostgresContext(options);
                 });
 
-                services.AddSingleton<TdClient>(sp =>
+                services.AddLogging(x =>
+                {
+                    x.ClearProviders();
+                    x.AddSerilog();
+                });
+
+                services.AddScoped<TdClient>(sp =>
                 {
                     var client = new TdClient();
 
                     client.SetLogStreamAsync(
                         new TdApi.LogStream.LogStreamFile
-                    {
-                        Path = "tdlib_log.txt",
-                        MaxFileSize = 10_000_000
-                    });
+                        {
+                            Path = "tdlib_log.txt",
+                            MaxFileSize = 10_000_000
+                        });
 
                     client.ExecuteAsync(new TdApi.SetLogVerbosityLevel { NewVerbosityLevel = 0 }).Wait();
 
                     return client;
                 });
-                services.AddSingleton<ITelegramAuthorizationService, TelegramAuthorizationService>();
-                services.AddSingleton<InitializeClientOptions>(initOptions);
+                services.AddScoped<ITelegramAuthorizationService, TelegramAuthorizationService>();
             })
             .Build();
 host.Start();
 var services = host.Services;
 
-services.GetRequiredService<IUpdateAuhorizationStateExecutor>().WaitEvent += async (sender, state) =>
+var clientDispatcher = services.GetRequiredService<ITelegramClientDispatcher>();
+var clientId = clientDispatcher.CreateClient(initOptions);
+
+clientDispatcher.GetAuthorizationStateExecutor(clientId).WaitEvent += async (sender, state) =>
 {
-    var telegramAuthorizationService = services.GetRequiredService<ITelegramAuthorizationService>();
+    var telegramAuthorizationService = clientDispatcher.GetAuthorizationService(clientId);
+
     switch (state)
     {
         case AuthorizationStateWaitPassword:
@@ -95,7 +115,8 @@ services.GetRequiredService<IUpdateAuhorizationStateExecutor>().WaitEvent += asy
             throw new Exception("Нет обработчика тут");
     }
 };
+var client = await clientDispatcher.Wait(clientId);
 
-ITelegramClient client = await services.GetRequiredService<ClientServiceFactory>().CreateAsync(initOptions);
-await client.Test();
+
+await client.WakeUp();
 await Task.Delay(Timeout.Infinite);

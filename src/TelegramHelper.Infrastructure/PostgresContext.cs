@@ -8,6 +8,8 @@ public class PostgresContext(DbContextOptions<PostgresContext> options) : DbCont
 {
     public DbSet<CurrentFolderModel> Folders => Set<CurrentFolderModel>();
     public DbSet<CurrentChatFolderModel> ChatFolders => Set<CurrentChatFolderModel>();
+    public DbSet<FolderFilterModel> FolderFilters => Set<FolderFilterModel>();
+    public DbSet<OwnerModel> Owners => Set<OwnerModel>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

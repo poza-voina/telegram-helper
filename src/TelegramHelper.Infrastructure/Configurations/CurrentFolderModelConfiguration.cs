@@ -21,10 +21,6 @@ public class CurrentFolderModelConfiguration : IEntityTypeConfiguration<CurrentF
             .HasColumnName("id");
 
         builder
-            .Property(x => x.Description)
-            .HasColumnName("description");
-
-        builder
             .Property(x => x.OwnerId)
             .HasColumnName("owner_id");
 
@@ -33,16 +29,16 @@ public class CurrentFolderModelConfiguration : IEntityTypeConfiguration<CurrentF
             .HasColumnName("folder_id");
 
         builder
+            .HasIndex(x => new { x.OwnerId, x.FolderId })
+            .IsUnique();
+
+        builder
             .Property(x => x.IconName)
             .HasColumnName("icon_name");
 
         builder
             .Property(x => x.FolderName)
             .HasColumnName("folder_name");
-
-        builder
-            .Property(x => x.FolderType)
-            .HasColumnName("folder_type");
 
         builder
             .Property(x => x.CreateAt)

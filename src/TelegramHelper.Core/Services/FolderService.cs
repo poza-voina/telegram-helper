@@ -18,8 +18,6 @@ public class FolderService(ITelegramClient telegramClient, IRepository<CurrentFo
 
         NotFoundException.ThrowIfNull(model);
 
-        model.FolderType = FolderType.Archive;
-
         await telegramClient.RemoveFolderAsync(model.FolderId);
 
         await folderRepository.UpdateAsync(model);
@@ -29,7 +27,7 @@ public class FolderService(ITelegramClient telegramClient, IRepository<CurrentFo
     {
         var query = folderRepository
             .GetAll()
-            .Where(x => x.OwnerId == ownerId && x.FolderType == FolderType.Current)
+            .Where(x => x.OwnerId == ownerId)
             .Select(x => x.CurrentFolderModelToFolderView());
 
         return await query.ToListAsync();

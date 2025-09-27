@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using TelegramHelper.Infrastructure;
@@ -11,9 +12,11 @@ using TelegramHelper.Infrastructure;
 namespace TelegramHelper.Infrastructure.Migrations
 {
     [DbContext(typeof(PostgresContext))]
-    partial class PostgresContextModelSnapshot : ModelSnapshot
+    [Migration("20250922080545_Migration1")]
+    partial class Migration1
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

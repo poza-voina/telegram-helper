@@ -14,7 +14,7 @@ public class TelegramClientException : Exception
     {
     }
 
-    public static void ThrowIfStatusOnWorked(TelegramClientStatus status)
+    public static void ThrowIfStatusOnWorked(TelegramClientStatus? status)
     {
         if (status != TelegramClientStatus.Ready)
         {

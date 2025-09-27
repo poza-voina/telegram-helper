@@ -4,7 +4,7 @@ using TelegramHelper.Abstractions.Models;
 
 namespace TelegramHelper.Infrastructure.Configurations;
 
-public class FolderFilterConfiguration : IEntityTypeConfiguration<FolderFilterModel>
+public class FolderFilterModelConfiguration : IEntityTypeConfiguration<FolderFilterModel>
 {
     public void Configure(EntityTypeBuilder<FolderFilterModel> builder)
     {

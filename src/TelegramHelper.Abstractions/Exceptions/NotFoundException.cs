@@ -1,4 +1,5 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 
 namespace TelegramHelper.Abstractions.Exceptions;
 
@@ -16,11 +17,18 @@ public class NotFoundException : Exception
     {
     }
 
-    public static void ThrowIfNull(object? value)
+    public static void ThrowIfNull([NotNull] object? value)
     {
         if (value is null)
         {
-            throw new NotFoundException("сущность не найдена");
+            throw new NotFoundException($"Object {value?.GetType()} не найден");
+        }
+    }
+    public static void ThrowIfNull<T>([NotNull] T? value)
+    {
+        if (value is null)
+        {
+            throw new NotFoundException($"Object {value?.GetType()} не найден");
         }
     }
 }

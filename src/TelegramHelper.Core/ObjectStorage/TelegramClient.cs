@@ -1,76 +1,133 @@
-﻿using TdLib;
+﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using System.Threading.Channels;
+using TdLib;
 using TelegramHelper.Abstractions;
-using TelegramHelper.Abstractions.Data;
 using TelegramHelper.Abstractions.Exceptions;
-using TelegramHelper.Abstractions.Models;
-using TelegramHelper.Core.Executors;
 using TelegramHelper.Core.Executors.Interfaces;
 using TelegramHelper.Core.ObjectStorage.Interfaces;
-using TelegramHelper.Core.ObjectStorage.Mappers;
-using TelegramHelper.Infrastructure.Repositories.Interfaces;
+using TelegramHelper.Core.ObjectStorage.LogObjects;
+using TelegramHelper.Core.Services.Interfaces;
 using static TdLib.TdApi;
-using static TdLib.TdApi.AuthorizationState;
-using static TdLib.TdApi.Update;
 
 namespace TelegramHelper.Core.ObjectStorage;
 
-public class TelegramClient(TdClient client) : IDisposable, ITelegramClient
+public class TelegramClient : IDisposable, ITelegramClient
 {
-    public TdClient Client { get; } = client;
-    public TelegramClientStatus Status { get; private set; }
+    public TdClient TdClient { get; protected init; }
+    public ITelegramAuthorizationService AuthorizationService { get; protected set; }
+    public IServiceProvider ScopedServiceProvider { get; protected init; }
+    public IServiceScope Scope { get; protected init; }
+    public ITelegramUpdateExecutor MainExecutor { get; protected init; }
+    public TelegramClientContext Context { get; private init; }
+    public Channel<Func<Task>> DbJobs { get; } = Channel.CreateUnbounded<Func<Task>>();
+    private readonly ILogger<TelegramClient> _logger;
 
-    public static Task<ITelegramClient> InitializeClient(TdClient tdClient, InitializeClientOptions options, ITelegramUpdateExecutor updateExecutor)
+    protected TelegramClient(IServiceProvider serviceProvider, InitializeClientOptions initializeOptions)
     {
-        var service = new TelegramClient(tdClient);
-        var client = service.Client;
+        Scope = serviceProvider.CreateScope();
+        ScopedServiceProvider = Scope.ServiceProvider;
+
+        Context = ScopedServiceProvider.GetRequiredService<TelegramClientContext>();
+        Context.Status = TelegramClientStatus.Pending;
+        Context.InitializeClientOptions = initializeOptions;
+
+        MainExecutor = ScopedServiceProvider.GetRequiredService<ITelegramUpdateExecutor>();
+        TdClient = ScopedServiceProvider.GetRequiredService<TdClient>();
+        _logger = ScopedServiceProvider.GetRequiredService<ILogger<TelegramClient>>();
+
+        MainExecutor
+            .AddExecutor<IUpdateAuthorizationStateExecutor>();
+
+        TdClient.UpdateReceived += async (sender, update) =>
+        {
+            await MainExecutor.ExecuteAsync(update);
+        };
+
+        AuthorizationService = ScopedServiceProvider.GetRequiredService<ITelegramAuthorizationService>();
+
+        _logger.LogInformation("{@LogData}",
+            new InitializeObjectLogDataWithTdClient
+            {
+                ContainerType = GetType().Name,
+                TdClientHash = TdClient.GetHashCode().ToString(),
+                Status = ExecutorLogDataStatus.Created
+            });
+    }
+
+    public static TelegramClient InitializeFirstStep(
+        IServiceProvider serviceProvider,
+        InitializeClientOptions options)
+    {
+        //TODO видимо убрать
+        var client = new TelegramClient(serviceProvider, options);
+
+        return client;
+    }
+    public async Task<TelegramClient> InitializeSecondStep()
+    {
         var tcs = new TaskCompletionSource<ITelegramClient>();
 
-        client.UpdateReceived += async (sender, update) =>
+        MainExecutor
+            .AddExecutor<IUpdateChatFoldersExecutor>();
+
+        var (state, ownerId) = await MainExecutor.WaitForReadyStateAsync();
+
+        Context.OwnerId = ownerId;
+
+        _ = Task.Run(() => ProcessDbJobsAsync());
+
+        _logger.LogInformation("{@LogData}",
+            new InitializeObjectLogDataWithTdClient
+            {
+                ContainerType = GetType().Name,
+                TdClientHash = TdClient.GetHashCode().ToString(),
+                Status = ExecutorLogDataStatus.Initialized
+            });
+
+        return this;
+    }
+
+    protected async Task ProcessDbJobsAsync(CancellationToken cancellationToken = default)
+    {
+        await foreach (var job in DbJobs.Reader.ReadAllAsync(cancellationToken))
         {
             try
             {
-                await updateExecutor.ExecuteAsync(update);
-
-                if (update is UpdateAuthorizationState authUpdate &&
-                    authUpdate.AuthorizationState is AuthorizationStateReady)
-
-                {
-                    tcs.TrySetResult(service);
-                }
+                _logger.LogInformation("Process job"); //TODO сделать
+                await job();
             }
             catch (Exception ex)
             {
-                tcs.TrySetException(ex);
+                Console.WriteLine($"Ошибка при выполнении задачи: {ex}");
             }
-        };
-
-        return tcs.Task;
+        }
     }
 
     public void Dispose()
     {
-        Client?.Dispose();
+        TdClient?.Dispose();
     }
 
     public async Task RemoveFolderAsync(int folderId)
     {
-        TelegramClientException.ThrowIfStatusOnWorked(Status);
+        TelegramClientException.ThrowIfStatusOnWorked(Context.Status);
 
-        await Client.ExecuteAsync(new TdApi.DeleteChatFolder() { ChatFolderId = folderId });
+        await TdClient.ExecuteAsync(new TdApi.DeleteChatFolder() { ChatFolderId = folderId });
     }
 
     public async Task<ChatFolder> GetChatsByChatFolderAsync(int folderId)
     {
-        return await Client.ExecuteAsync(
+        return await TdClient.ExecuteAsync(
             new GetChatFolder
             {
                 ChatFolderId = folderId
             });
     }
 
-    public async Task Test()
+    public async Task WakeUp()
     {
-        await client.ExecuteAsync(new TdApi.LoadChats
+        await TdClient.ExecuteAsync(new TdApi.LoadChats
         {
             ChatList = new TdApi.ChatList.ChatListMain(),
             Limit = 10000

@@ -3,5 +3,6 @@
 public enum TelegramClientStatus
 {
     Ready,
-    Stopped
+    Stopped,
+    Pending
 }

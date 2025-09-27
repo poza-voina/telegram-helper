@@ -16,7 +16,6 @@ public static class FolderMapper
             FolderId = src.Id,
             FolderName = src.Name.Text.Text,
             IconName = src.Icon.Name,
-            FolderType = FolderType.Current
         };
     }
 
@@ -25,12 +24,10 @@ public static class FolderMapper
         return new FolderView
         {
             Id = src.Id,
-            Description = src.Description,
             OwnerId = src.OwnerId,
             FolderId = src.FolderId,
             IconName = src.IconName,
             FolderName = src.FolderName,
-            FolderType = src.FolderType
         };
     }
 }

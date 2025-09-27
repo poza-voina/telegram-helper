@@ -1,9 +1,12 @@
-﻿using static TdLib.TdApi;
+﻿using System.Security.Cryptography;
+using TdLib;
+using static TdLib.TdApi;
+using static TdLib.TdApi.AuthorizationState;
 
 namespace TelegramHelper.Core.Executors.Interfaces;
 
-public interface IUpdateAuhorizationStateExecutor
+public interface IUpdateAuthorizationStateExecutor : IUpdateExecutor<TdApi.Update.UpdateAuthorizationState>
 {
     event EventHandler<AuthorizationState>? WaitEvent;
-    Task ExecuteStateAsync(AuthorizationState state);
+    Task<(AuthorizationStateReady StateReady, long OwnerId)> WaitForReadyStateAsync(CancellationToken cancellationToken = default);
 }
