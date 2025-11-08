@@ -2,6 +2,6 @@
 
 public class ExecutorAddedLogData
 {
-    public string ContainerType { get; set; }
-    public string ExecutorType { get; set; }
+	public string ContainerType { get; set; }
+	public string ExecutorType { get; set; }
 }

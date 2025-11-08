@@ -2,6 +2,6 @@
 
 public enum ChatStatus
 {
-    Included,
-    Excluded
+	Included,
+	Excluded
 }

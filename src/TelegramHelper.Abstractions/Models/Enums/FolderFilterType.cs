@@ -2,8 +2,12 @@
 
 public enum FolderFilterType
 {
-    IncludeNonContacts,
-    IncludeBots,
-    IncludeGroups,
-    IncludeChannels
+	IncludeContacts,
+	IncludeNonContacts,
+	IncludeBots,
+	IncludeGroups,
+	IncludeChannels,
+	ExcludeMuted,
+	ExcludeRead,
+	ExcludeArchived
 }

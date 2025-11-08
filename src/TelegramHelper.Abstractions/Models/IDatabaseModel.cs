@@ -2,5 +2,5 @@
 
 public interface IDatabaseModel<T>
 {
-    T Id { get; set; }
+	T Id { get; set; }
 }

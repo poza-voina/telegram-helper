@@ -2,6 +2,6 @@
 
 public class InitializeObjectLogData
 {
-    public string ContainerType { get; set; }
-    public ExecutorLogDataStatus Status { get; set; }
+	public string ContainerType { get; set; }
+	public ExecutorLogDataStatus Status { get; set; }
 }

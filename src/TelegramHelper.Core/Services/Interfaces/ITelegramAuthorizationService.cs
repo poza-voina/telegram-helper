@@ -2,6 +2,6 @@
 
 public interface ITelegramAuthorizationService
 {
-    Task SendCodeAsync(string code);
-    Task SendPasswordAsync(string password);
+	Task SendCodeAsync(string code);
+	Task SendPasswordAsync(string password);
 }

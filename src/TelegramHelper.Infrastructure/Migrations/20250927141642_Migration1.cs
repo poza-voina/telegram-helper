@@ -34,7 +34,7 @@ namespace TelegramHelper.Infrastructure.Migrations
                     id = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     owner_id = table.Column<long>(type: "bigint", nullable: false),
-                    folder_id = table.Column<int>(type: "integer", nullable: false),
+                    telegram_folder_id = table.Column<int>(type: "integer", nullable: false),
                     icon_name = table.Column<string>(type: "text", nullable: false),
                     folder_name = table.Column<string>(type: "text", nullable: false),
                     create_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "timezone('utc', now())"),
@@ -52,71 +52,71 @@ namespace TelegramHelper.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "chat_folder",
-                columns: table => new
-                {
-                    id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    chat_id = table.Column<long>(type: "bigint", nullable: false),
-                    folder_id = table.Column<int>(type: "integer", nullable: false),
-                    status = table.Column<string>(type: "text", nullable: false),
-                    CurrentFolderModelId = table.Column<long>(type: "bigint", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_chat_folder", x => x.id);
-                    table.ForeignKey(
-                        name: "FK_chat_folder_folder_CurrentFolderModelId",
-                        column: x => x.CurrentFolderModelId,
-                        principalTable: "folder",
-                        principalColumn: "id");
-                });
-
-            migrationBuilder.CreateTable(
-                name: "folder_filters",
+                name: "current_dynamic_folder_filters",
                 columns: table => new
                 {
                     id = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     folder_id = table.Column<long>(type: "bigint", nullable: false),
-                    filter_type = table.Column<int>(type: "integer", nullable: false),
-                    CurrentFolderModelId = table.Column<long>(type: "bigint", nullable: true)
+                    filter_type = table.Column<string>(type: "text", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_folder_filters", x => x.id);
+                    table.PrimaryKey("PK_current_dynamic_folder_filters", x => x.id);
                     table.ForeignKey(
-                        name: "FK_folder_filters_folder_CurrentFolderModelId",
-                        column: x => x.CurrentFolderModelId,
+                        name: "FK_current_dynamic_folder_filters_folder_folder_id",
+                        column: x => x.folder_id,
                         principalTable: "folder",
-                        principalColumn: "id");
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "current_static_folder_filters",
+                columns: table => new
+                {
+                    id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    chat_id = table.Column<long>(type: "bigint", nullable: false),
+                    folder_id = table.Column<long>(type: "bigint", nullable: false),
+                    status = table.Column<string>(type: "text", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_current_static_folder_filters", x => x.id);
+                    table.ForeignKey(
+                        name: "FK_current_static_folder_filters_folder_folder_id",
+                        column: x => x.folder_id,
+                        principalTable: "folder",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateIndex(
-                name: "IX_chat_folder_CurrentFolderModelId",
-                table: "chat_folder",
-                column: "CurrentFolderModelId");
+                name: "IX_current_dynamic_folder_filters_folder_id",
+                table: "current_dynamic_folder_filters",
+                column: "folder_id");
 
             migrationBuilder.CreateIndex(
-                name: "IX_folder_owner_id_folder_id",
+                name: "IX_current_static_folder_filters_folder_id",
+                table: "current_static_folder_filters",
+                column: "folder_id");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_folder_owner_id_telegram_folder_id",
                 table: "folder",
-                columns: new[] { "owner_id", "folder_id" },
+                columns: new[] { "owner_id", "telegram_folder_id" },
                 unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "IX_folder_filters_CurrentFolderModelId",
-                table: "folder_filters",
-                column: "CurrentFolderModelId");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "chat_folder");
+                name: "current_dynamic_folder_filters");
 
             migrationBuilder.DropTable(
-                name: "folder_filters");
+                name: "current_static_folder_filters");
 
             migrationBuilder.DropTable(
                 name: "folder");

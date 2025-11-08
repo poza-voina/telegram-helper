@@ -2,6 +2,6 @@
 
 public enum FolderType
 {
-    Current,
-    Archive
+	Current,
+	Archive
 }

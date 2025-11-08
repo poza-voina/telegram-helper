@@ -22,7 +22,7 @@ namespace TelegramHelper.Infrastructure.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("TelegramHelper.Abstractions.Models.CurrentChatFolderModel", b =>
+            modelBuilder.Entity("TelegramHelper.Abstractions.Models.CurrentDynamicFolderFilterModel", b =>
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
@@ -31,27 +31,20 @@ namespace TelegramHelper.Infrastructure.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
-                    b.Property<long>("ChatId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("chat_id");
-
-                    b.Property<long?>("CurrentFolderModelId")
-                        .HasColumnType("bigint");
-
-                    b.Property<int>("FolderId")
-                        .HasColumnType("integer")
-                        .HasColumnName("folder_id");
-
-                    b.Property<string>("Status")
+                    b.Property<string>("FilterType")
                         .IsRequired()
                         .HasColumnType("text")
-                        .HasColumnName("status");
+                        .HasColumnName("filter_type");
+
+                    b.Property<long>("FolderId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("folder_id");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CurrentFolderModelId");
+                    b.HasIndex("FolderId");
 
-                    b.ToTable("chat_folder", (string)null);
+                    b.ToTable("current_dynamic_folder_filters", (string)null);
                 });
 
             modelBuilder.Entity("TelegramHelper.Abstractions.Models.CurrentFolderModel", b =>
@@ -69,10 +62,6 @@ namespace TelegramHelper.Infrastructure.Migrations
                         .HasColumnName("create_at")
                         .HasDefaultValueSql("timezone('utc', now())");
 
-                    b.Property<int>("FolderId")
-                        .HasColumnType("integer")
-                        .HasColumnName("folder_id");
-
                     b.Property<string>("FolderName")
                         .IsRequired()
                         .HasColumnType("text")
@@ -83,9 +72,17 @@ namespace TelegramHelper.Infrastructure.Migrations
                         .HasColumnType("text")
                         .HasColumnName("icon_name");
 
+                    b.Property<bool>("IsArchive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_arhive");
+
                     b.Property<long>("OwnerId")
                         .HasColumnType("bigint")
                         .HasColumnName("owner_id");
+
+                    b.Property<int?>("TelegramFolderId")
+                        .HasColumnType("integer")
+                        .HasColumnName("telegram_folder_id");
 
                     b.Property<DateTime>("UpdateAt")
                         .ValueGeneratedOnUpdate()
@@ -94,13 +91,13 @@ namespace TelegramHelper.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("OwnerId", "FolderId")
+                    b.HasIndex("OwnerId", "TelegramFolderId")
                         .IsUnique();
 
-                    b.ToTable("folder", (string)null);
+                    b.ToTable("current_folders", (string)null);
                 });
 
-            modelBuilder.Entity("TelegramHelper.Abstractions.Models.FolderFilterModel", b =>
+            modelBuilder.Entity("TelegramHelper.Abstractions.Models.CurrentStaticFolderFilterModel", b =>
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
@@ -109,22 +106,24 @@ namespace TelegramHelper.Infrastructure.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
-                    b.Property<long?>("CurrentFolderModelId")
-                        .HasColumnType("bigint");
-
-                    b.Property<int>("FilterType")
-                        .HasColumnType("integer")
-                        .HasColumnName("filter_type");
+                    b.Property<long>("ChatId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("chat_id");
 
                     b.Property<long>("FolderId")
                         .HasColumnType("bigint")
                         .HasColumnName("folder_id");
 
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("status");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("CurrentFolderModelId");
+                    b.HasIndex("FolderId");
 
-                    b.ToTable("folder_filters", (string)null);
+                    b.ToTable("current_static_folder_filters", (string)null);
                 });
 
             modelBuilder.Entity("TelegramHelper.Abstractions.Models.OwnerModel", b =>
@@ -153,17 +152,21 @@ namespace TelegramHelper.Infrastructure.Migrations
                     b.ToTable("owner", (string)null);
                 });
 
-            modelBuilder.Entity("TelegramHelper.Abstractions.Models.CurrentChatFolderModel", b =>
+            modelBuilder.Entity("TelegramHelper.Abstractions.Models.CurrentDynamicFolderFilterModel", b =>
                 {
-                    b.HasOne("TelegramHelper.Abstractions.Models.CurrentFolderModel", null)
-                        .WithMany("ChatModels")
-                        .HasForeignKey("CurrentFolderModelId");
+                    b.HasOne("TelegramHelper.Abstractions.Models.CurrentFolderModel", "Folder")
+                        .WithMany("DynamicFilters")
+                        .HasForeignKey("FolderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Folder");
                 });
 
             modelBuilder.Entity("TelegramHelper.Abstractions.Models.CurrentFolderModel", b =>
                 {
                     b.HasOne("TelegramHelper.Abstractions.Models.OwnerModel", "Owner")
-                        .WithMany("CurrentFolders")
+                        .WithMany("Folders")
                         .HasForeignKey("OwnerId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -171,23 +174,27 @@ namespace TelegramHelper.Infrastructure.Migrations
                     b.Navigation("Owner");
                 });
 
-            modelBuilder.Entity("TelegramHelper.Abstractions.Models.FolderFilterModel", b =>
+            modelBuilder.Entity("TelegramHelper.Abstractions.Models.CurrentStaticFolderFilterModel", b =>
                 {
-                    b.HasOne("TelegramHelper.Abstractions.Models.CurrentFolderModel", null)
-                        .WithMany("FolderFilters")
-                        .HasForeignKey("CurrentFolderModelId");
+                    b.HasOne("TelegramHelper.Abstractions.Models.CurrentFolderModel", "Folder")
+                        .WithMany("StaticFilters")
+                        .HasForeignKey("FolderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Folder");
                 });
 
             modelBuilder.Entity("TelegramHelper.Abstractions.Models.CurrentFolderModel", b =>
                 {
-                    b.Navigation("ChatModels");
+                    b.Navigation("DynamicFilters");
 
-                    b.Navigation("FolderFilters");
+                    b.Navigation("StaticFilters");
                 });
 
             modelBuilder.Entity("TelegramHelper.Abstractions.Models.OwnerModel", b =>
                 {
-                    b.Navigation("CurrentFolders");
+                    b.Navigation("Folders");
                 });
 #pragma warning restore 612, 618
         }

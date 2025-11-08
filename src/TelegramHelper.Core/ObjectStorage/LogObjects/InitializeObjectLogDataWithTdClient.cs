@@ -2,5 +2,5 @@
 
 public class InitializeObjectLogDataWithTdClient : InitializeObjectLogData
 {
-    public string TdClientHash { get; set; }
+	public string TdClientHash { get; set; }
 }

@@ -4,11 +4,11 @@ namespace TelegramHelper.Core.Executors.Interfaces;
 
 public interface IUpdateExecutor
 {
-    Type UpdateType { get; }
-    Task ExecuteAsync(object @event);
+	Type UpdateType { get; }
+	Task ExecuteAsync(object @event);
 }
 
-public interface IUpdateExecutor<in T> : IUpdateExecutor where T : TdApi.Update 
+public interface IUpdateExecutor<in T> : IUpdateExecutor where T : TdApi.Update
 {
-    Task ExecuteAsync(T @event);
+	Task ExecuteAsync(T @event);
 }

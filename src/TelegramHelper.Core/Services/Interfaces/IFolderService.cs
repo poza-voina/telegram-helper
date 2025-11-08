@@ -4,6 +4,7 @@ namespace TelegramHelper.Core.Services.Interfaces;
 
 public interface IFolderService
 {
-    Task<IEnumerable<FolderView>> GetCurrentFolders(long ownerId);
-    Task FolderToArchive(long id);
+	Task<IEnumerable<FolderView>> GetCurrentFolders();
+	Task FolderToArchiveAsync(long id);
+	Task FolderFromArhive(long id);
 }
